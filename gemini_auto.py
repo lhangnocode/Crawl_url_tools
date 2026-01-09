@@ -31,8 +31,6 @@ class PermissiveGemini(ChatGoogleGenerativeAI):
     def model_name(self, value): self.model = value
 
 async def main():
-    # SỬA 1: Dùng 'gemini-1.5-pro' để thông minh hơn, tránh lỗi "items"
-    # Nếu bị lỗi Quota/Rate Limit thì mới đổi về 'gemini-1.5-flash'
     llm = PermissiveGemini(
         model="gemini-1.5-pro", 
         api_key=SecretStr(API_KEY)
