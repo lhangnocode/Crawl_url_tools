@@ -1,0 +1,22 @@
+# Virtual environment
+my-browser-env/
+venv/
+.env
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Logs
+*.log
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+
+# Build / test
+build/
+dist/
+htmlcov/
+.coverage
