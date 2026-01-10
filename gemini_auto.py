@@ -3,25 +3,27 @@ import os
 from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
 from browser_use import Agent, Browser
-# Chúng ta vẫn cần import BrowserProfile để kết nối cổng debug
-from browser_use.browser import BrowserProfile 
+
+# --- QUAN TRỌNG: Bản 0.11.2 dùng BrowserProfile ---
+from browser_use.browser import BrowserProfile
+
 from pydantic import ConfigDict, SecretStr
 
 load_dotenv()
 
 API_KEY = os.getenv("GEMINI_API_KEY")
 
-# Kịch bản (Prompt) - Thêm bước chờ rõ ràng hơn
+# Kịch bản (Prompt) - Tiếng Anh + Vision
 TASK_SCENARIO = """
-1. Go to http://localhost:3001/#/
-2. WAIT 5 SECONDS for the page to fully load.
-3. IMPORTANT: If you see a 'Dismiss' button (Welcome banner), click it.
-4. If you see a 'Me want it!' or 'Accept' button (Cookie consent), click it.
+1. Go to http://localhost:3000/
+2. WAIT for the page to load.
+3. LOOK VISUALLY: If you see a 'Dismiss' button (Welcome banner) or 'Me want it!' (Cookie), CLICK THEM immediately to clear the screen.
+4. Search for any product (e.g., 'Juice') or pick visible products.
 5. Add exactly 3 different products to the basket.
-6. If any popup appears, close it.
+6. If any popup appears blocking the view, close it first.
 """
 
-# Class wrapper cho Gemini
+# Wrapper class (Giữ nguyên)
 class PermissiveGemini(ChatGoogleGenerativeAI):
     model_config = ConfigDict(extra='allow') 
     provider: str = "google"
@@ -31,33 +33,41 @@ class PermissiveGemini(ChatGoogleGenerativeAI):
     def model_name(self, value): self.model = value
 
 async def main():
+    # 1. Cấu hình Model
     llm = PermissiveGemini(
-        model="gemini-1.5-pro", 
+        model="gemini-2.5-flash", 
         api_key=SecretStr(API_KEY)
     )
 
-    # SỬA 2: Kết nối vào Chrome đang mở (Port 9222)
-    profile = BrowserProfile(
-        cdp_url="http://127.0.0.1:9222" 
+    # 2. Cấu hình Browser (Kiểu cũ 0.11.2)
+    # Chúng ta dùng BrowserProfile mặc định (sẽ tự mở Chrome mới)
+    # Lưu ý: Bản 0.11.2 kết nối vào Chrome có sẵn hơi phức tạp, 
+    # nên để nó tự mở trình duyệt mới là ổn định nhất.
+    browser = Browser(
+        browser_profile=BrowserProfile() 
     )
-    browser = Browser(browser_profile=profile)
 
+    # 3. Khởi tạo Agent
     agent = Agent(
         task=TASK_SCENARIO,
         llm=llm,
-        browser=browser
+        browser=browser,
+        use_vision=True  # <--- BẮT BUỘC ĐỂ SỬA LỖI ITEMS
     )
 
-    print(">>> Đang kết nối vào Chrome (Port 9222)...")
+    print(">>> Đang chạy Agent (Vision Mode - v0.11.2)...")
     
     try:
         await agent.run()
-        print(">>> Kịch bản hoàn tất! Hãy kiểm tra ZAP.")
+        print(">>> Kịch bản hoàn tất!")
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         print(f"Lỗi: {e}")
-    
-    # SỬA 3: Xóa lệnh browser.close() vì đang dùng CDP connection
-    print(">>> Đã xong nhiệm vụ. (Giữ nguyên trình duyệt)")
+    finally:
+        # Giữ browser lại để debug
+        input("Ấn Enter để đóng trình duyệt...")
+        await browser.close()
 
 if __name__ == "__main__":
     asyncio.run(main())
