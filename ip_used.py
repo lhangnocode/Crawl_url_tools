@@ -1,4 +1,5 @@
-from browser_use import Agent, BrowserProfile, BrowserSession, ChatGoogle
+from browser_use import Agent, Browser, BrowserProfile, BrowserSession, ChatGoogle
+from browser_use.browser import ProxySettings
 
 from dotenv import load_dotenv
 
@@ -24,7 +25,7 @@ Perform these actions systematically to maximize security testing coverage and e
 
 task = """
 
-Open http://127.0.0.1:3001/ , if you see the modal click dismiss and log in with:
+Open http://192.168.1.14:3001/ , if you see the modal click dismiss and log in with:
 
 - Email: prodz18022005@gmail.com
 
@@ -60,11 +61,17 @@ You will see My Payment Options. On the “My Payment Options” page. Click on 
 
 initial_action = [
 
-    {'go_to_url': {'url': 'http://127.0.0.1:3001', 'new_tab': True}},
+    {'go_to_url': {'url': 'http://192.168.1.14:3001', 'new_tab': True}},
 
     {'wait': {'seconds': 1}},    
 
 ]
+
+browser = Browser(
+       proxy=ProxySettings(
+            server="http://localhost:8081",
+        )
+)
 
 async def main():
 
@@ -90,17 +97,11 @@ async def main():
 
     agent = Agent(
 
-        # task="""Open http://127.0.0.1:3000/ and login
-
-        # with account phamtatthanh22@gmail.com and password iamthanhdzpro1
-
-        # and click all element you can click
-
-        # Do this and repeat continuously, if you can't click anymore, go back to the main page.""",
-
         task=task,
 
         llm=llm,
+
+        browser=browser,
 
         initial_action=initial_action,
 
