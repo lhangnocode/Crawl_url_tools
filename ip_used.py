@@ -9,7 +9,7 @@ import asyncio
 
 
 
-llm = ChatGoogle(model="gemini-2.5-flash")
+llm = ChatGoogle(model="gemini-2.5-pro")
 
 extend_system_message = """
 
@@ -25,7 +25,7 @@ Perform these actions systematically to maximize security testing coverage and e
 
 task = """
 
-Open http://192.168.1.14:3001/ , if you see the modal click dismiss and log in with:
+Open http://192.168.1.14:3001/#/ , if you see the modal click dismiss and log in with:
 
 - Email: prodz18022005@gmail.com
 
@@ -61,7 +61,7 @@ You will see My Payment Options. On the “My Payment Options” page. Click on 
 
 initial_action = [
 
-    {'go_to_url': {'url': 'http://192.168.1.14:3001', 'new_tab': True}},
+    {'go_to_url': {'url': 'http://192.168.1.14:3001/#/', 'new_tab': True}},
 
     {'wait': {'seconds': 1}},    
 
@@ -69,31 +69,11 @@ initial_action = [
 
 browser = Browser(
        proxy=ProxySettings(
-            server="http://localhost:8081",
+            server="http://localhost:8080",
         )
 )
 
 async def main():
-
-    # browser_session = BrowserSession(
-
-    # )
-
-    # browser_profile = BrowserProfile(
-
-    #     proxy={
-
-    #         "server" : "http://localhost:8080"    
-
-    #     }
-
-    # browser_session = BrowserSession(
-
-    #     # executable_path=r'C:\Program Files\Google\Chrome\Application\chrome.exe',
-
-    #     user_data_dir=r'C:\Users\admin\AppData\Local\Temp\scoped_dir11492_2071321393\Default'
-
-    # )
 
     agent = Agent(
 
