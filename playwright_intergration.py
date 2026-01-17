@@ -299,51 +299,18 @@ async def playwright_get_text(params: PlaywrightGetTextAction, browser_session: 
 llm = ChatGoogle(model="gemini-2.5-flash")
 
 extend_system_message = """
-
-You are a security testing expert. 
-
-Your task is to thoroughly explore the target website by interacting with all accessible elements. 
-
-Click every clickable component, scroll through all sections, and navigate to every reachable page or feature. 
-
-Perform these actions systematically to maximize security testing coverage and ensure no part of the website is overlooked.
-
+You are an aggressive QA Automation Tester. 
+Your goal is maximize 'Code Coverage'. 
+- Do not follow a happy path. 
+- Try to click elements you haven't clicked before.
+- If you see a Login form, use credentials: prodz18022005@gmail.com / Dinhkhang18022005 to access internal features.
+- Avoid clicking 'Logout' or 'Sign out' unless you have explored everything else.
 """
 
 task = """
-
-Open http://192.168.1.14:3001/#/ , if you see the modal click dismiss and log in with:
-
-- Email: prodz18022005@gmail.com
-
-- Password: Dinhkhang18022005
-
-
-
-Then perform the following steps:
-
-
-
-1) Choose one product and click add to Basket, look at your Basket if the count turn to 1, next to step 2.
-
-2) Click “Your Basket”.
-
-3) Proceed to Checkout.
-
-4) Add a new address and fill out all address details completely.
-
-5) Select the newly created address and click Continue.
-
-6) Choose any delivery speed.
-
-7) Click Continue.
-
-
-
-You will see My Payment Options. On the “My Payment Options” page. Click on "Other payment options", then when the arrow expands, click on Spreadshirt (US) and finish the process.
-
-
-
+Go to http://192.168.1.14:3001/#/. 
+Explore the application deeply by finding and clicking all interactive elements. 
+Map out the structure of the site by visiting every accessible URL.
 """
 
 initial_action = [
