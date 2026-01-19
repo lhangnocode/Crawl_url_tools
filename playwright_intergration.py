@@ -4,6 +4,8 @@ import subprocess
 import sys
 import tempfile
 
+#! BROWSER USE + PLAYWRIGHT
+
 from pydantic import BaseModel, Field
 
 # Check for required dependencies first - before other imports
@@ -49,74 +51,87 @@ class PlaywrightGetTextAction(BaseModel):
 	selector: str = Field(..., description='CSS selector to get text from. Use "title" for page title.')
 
 
-async def start_chrome_with_debug_port(port: int = 9222):
-	"""
-	Start Chrome with remote debugging enabled.
-	Returns the Chrome process.
-	"""
-	# Create temporary directory for Chrome user data
-	user_data_dir = tempfile.mkdtemp(prefix='chrome_cdp_')
+async def start_chrome_with_debug_port(port: int = 9222, proxy: str | None = None):
+    """
+    Start Chrome with remote debugging enabled AND Proxy support.
+    Returns the Chrome process.
+    """
+    # Create temporary directory for Chrome user data
+    user_data_dir = tempfile.mkdtemp(prefix='chrome_cdp_')
 
-	# Chrome launch command
-	chrome_paths = [
-		# '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',  # macOS
-		'/usr/bin/google-chrome',  # Linux
-		# '/usr/bin/chromium-browser',  # Linux Chromium
-		# 'chrome',  # Windows/PATH
-		# 'chromium',  # Generic
-	]
+    # Chrome launch command
+    chrome_paths = [
+        # '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',  # macOS
+        '/usr/bin/google-chrome',  # Linux
+        # '/usr/bin/chromium-browser',  # Linux Chromium
+        # 'chrome',  # Windows/PATH
+        # 'chromium',  # Generic
+        # 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe' # Windows Default
+    ]
 
-	chrome_exe = None
-	for path in chrome_paths:
-		if os.path.exists(path) or path in ['chrome', 'chromium']:
-			try:
-				# Test if executable works
-				test_proc = await asyncio.create_subprocess_exec(
-					path, '--version', stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-				)
-				await test_proc.wait()
-				chrome_exe = path
-				break
-			except Exception:
-				continue
+    chrome_exe = None
+    for path in chrome_paths:
+        if os.path.exists(path) or path in ['chrome', 'chromium']:
+            try:
+                # Test if executable works
+                test_proc = await asyncio.create_subprocess_exec(
+                    path, '--version', stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                )
+                await test_proc.wait()
+                chrome_exe = path
+                break
+            except Exception:
+                continue
 
-	if not chrome_exe:
-		raise RuntimeError('❌ Chrome not found. Please install Chrome or Chromium.')
+    if not chrome_exe:
+        raise RuntimeError('❌ Chrome not found. Please install Chrome or Chromium.')
 
-	# Chrome command arguments
-	cmd = [
-		chrome_exe,
-		f'--remote-debugging-port={port}',
-		f'--user-data-dir={user_data_dir}',
-		'--no-first-run',
-		'--no-default-browser-check',
-		'--disable-extensions',
-		'about:blank',  # Start with blank page
-	]
+    # Chrome command arguments
+    cmd = [
+        chrome_exe,
+        f'--remote-debugging-port={port}',
+        f'--user-data-dir={user_data_dir}',
+        '--no-first-run',
+        '--no-default-browser-check',
+        '--disable-extensions',
+        '--disable-gpu', # Thường tốt cho môi trường headless/server
+        'about:blank',  # Start with blank page
+    ]
 
-	# Start Chrome process
-	process = await asyncio.create_subprocess_exec(*cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    # --- TÍCH HỢP PROXY ZAP ---
+    if proxy:
+        print(f"🌐 Configuring Chrome with Proxy: {proxy}")
+        # Xóa http:// nếu có để đảm bảo format đúng cho chrome flag
+        clean_proxy = proxy.replace("http://", "").replace("https://", "")
+        cmd.append(f'--proxy-server={clean_proxy}')
+        
+        # QUAN TRỌNG: ZAP dùng chứng chỉ tự ký (Self-signed), Chrome sẽ chặn nếu không có dòng này
+        cmd.append('--ignore-certificate-errors') 
+    # --------------------------
 
-	# Wait for Chrome to start and CDP to be ready
-	cdp_ready = False
-	for _ in range(20):  # 20 second timeout
-		try:
-			async with aiohttp.ClientSession() as session:
-				async with session.get(
-					f'http://localhost:{port}/json/version', timeout=aiohttp.ClientTimeout(total=1)
-				) as response:
-					if response.status == 200:
-						cdp_ready = True
-						break
-		except Exception:
-			pass
-		await asyncio.sleep(1)
+    # Start Chrome process
+    process = await asyncio.create_subprocess_exec(*cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-	if not cdp_ready:
-		process.terminate()
-		raise RuntimeError('❌ Chrome failed to start with CDP')
+    # Wait for Chrome to start and CDP to be ready
+    cdp_ready = False
+    for _ in range(20):  # 20 second timeout
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(
+                    f'http://localhost:{port}/json/version', timeout=aiohttp.ClientTimeout(total=1)
+                ) as response:
+                    if response.status == 200:
+                        cdp_ready = True
+                        break
+        except Exception:
+            pass
+        await asyncio.sleep(1)
 
-	return process
+    if not cdp_ready:
+        process.terminate()
+        raise RuntimeError('❌ Chrome failed to start with CDP')
+
+    return process
 
 
 async def connect_playwright_to_cdp(cdp_url: str):
@@ -328,61 +343,63 @@ initial_action = [
 # )
 
 async def main():
-	"""
-	Main function demonstrating Browser-Use + Playwright integration with custom actions.
-	"""
-	print('🚀 Advanced Playwright + Browser-Use Integration with Custom Actions')
+    """
+    Main function demonstrating Browser-Use + Playwright integration with custom actions.
+    """
+    print('🚀 Advanced Playwright + Browser-Use Integration with ZAP Proxy')
 
-	chrome_process = None
-	try:
-		# Step 1: Start Chrome with CDP debugging
-		chrome_process = await start_chrome_with_debug_port()
-		cdp_url = 'http://localhost:9222'
+    chrome_process = None
+    try:
+        # --- CẤU HÌNH PROXY ZAP TẠI ĐÂY ---
+        zap_proxy_url = "http://localhost:8080"
+        
+        # Step 1: Start Chrome with CDP debugging AND Proxy
+        chrome_process = await start_chrome_with_debug_port(port=9222, proxy=zap_proxy_url)
+        cdp_url = 'http://localhost:9222'
 
-		# Step 2: Connect Playwright to the same Chrome instance
-		await connect_playwright_to_cdp(cdp_url)
+        # Step 2: Connect Playwright to the same Chrome instance
+        await connect_playwright_to_cdp(cdp_url)
 
-		# Step 3: Create Browser-Use session connected to same Chrome
-		browser_session = BrowserSession(cdp_url=cdp_url)
+        # Step 3: Create Browser-Use session connected to same Chrome
+        # Lưu ý: BrowserSession ở đây chỉ cần connect vào CDP, 
+        # việc proxy đã được xử lý ở tầng process Chrome rồi.
+        browser_session = BrowserSession(cdp_url=cdp_url)
 
-		# Step 4: Create AI agent with our custom Playwright-powered tools
-		agent = Agent(
-			task=task,
+        # Step 4: Create AI agent with our custom Playwright-powered tools
+        agent = Agent(
+            task=task,
             llm=llm,
-			tools=tools,  # Our custom tools with Playwright actions
-			browser_session=browser_session,
-			initial_action=initial_action,
+            tools=tools,  # Our custom tools with Playwright actions
+            browser_session=browser_session,
+            initial_action=initial_action,
             extend_system_message=extend_system_message
-		)
+        )
 
-		print('🎯 Starting AI agent with custom Playwright actions...')
+        print('🎯 Starting AI agent with custom Playwright actions via ZAP...')
 
-		# Step 5: Run the agent - it will use both Browser-Use actions and our custom Playwright actions
-		result = await agent.run()
+        # Step 5: Run the agent
+        result = await agent.run()
 
-		# Keep browser open briefly to see results
-		print(f'✅ Integration demo completed! Result: {result}')
-		await asyncio.sleep(2)  # Brief pause to see results
+        print(f'✅ Integration demo completed! Result: {result}')
+        await asyncio.sleep(2)
 
-	except Exception as e:
-		print(f'❌ Error: {e}')
-		raise
+    except Exception as e:
+        print(f'❌ Error: {e}')
+        raise
 
-	finally:
-		# Clean up resources
-		if playwright_browser:
-			await playwright_browser.close()
+    finally:
+        if playwright_browser:
+            await playwright_browser.close()
 
-		if chrome_process:
-			chrome_process.terminate()
-			try:
-				await asyncio.wait_for(chrome_process.wait(), 5)
-			except TimeoutError:
-				chrome_process.kill()
+        if chrome_process:
+            chrome_process.terminate()
+            try:
+                await asyncio.wait_for(chrome_process.wait(), 5)
+            except TimeoutError:
+                chrome_process.kill()
 
-		print('✅ Cleanup complete')
+        print('✅ Cleanup complete')
 
 
 if __name__ == '__main__':
-	# Run the advanced integration demo
-	asyncio.run(main())
+    asyncio.run(main())
