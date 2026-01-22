@@ -9,7 +9,7 @@ import asyncio
 
 
 
-llm = ChatGoogle(model="gemini-2.5-pro", temperature=0.0)
+llm = ChatGoogle(model="gemini-2.5-pro")
 
 extend_system_message = """
 You are an aggressive QA Automation Tester. 
