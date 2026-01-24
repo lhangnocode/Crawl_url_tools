@@ -22,14 +22,14 @@ Your goal is maximize 'Code Coverage'.
 
 # 2. Task ngắn gọn
 task = """
-Go to http://192.168.1.14:3001/#/. 
+Go to https://www.zyte.com/blog/best-web-scraping-apis-2026/. 
 Explore the application deeply by finding and clicking all interactive elements. 
 Map out the structure of the site by visiting every accessible URL.
 """
 
 initial_action = [
 
-    {'go_to_url': {'url': 'http://192.168.1.14:3001/#/', 'new_tab': True}},
+    {'go_to_url': {'url': 'https://www.zyte.com/blog/best-web-scraping-apis-2026/', 'new_tab': True}},
 
     {'wait': {'seconds': 1}},    
 
