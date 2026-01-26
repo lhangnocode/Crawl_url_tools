@@ -5,13 +5,14 @@ from dotenv import load_dotenv
 from firecrawl import FirecrawlApp
 
 load_dotenv()
-api_key = os.getenv("FIRECRAWL_API_KEY")
+api_key = os.getenv("FIRECRAWL_API_KEY_SELFHOST")
+api_url = os.getenv("FIRECRAWL_API_URL")
 
 if not api_key:
     print("❌ Lỗi: Chưa cấu hình API Key trong file .env")
     exit()
 
-app = FirecrawlApp(api_key=api_key)
+app = FirecrawlApp(api_key=api_key, api_url=api_url)
 
 def deep_discovery_crawl(target_url):
     print(f"🕵️‍♂️ Đang kích hoạt Deep Crawl (JS Rendering) tại: {target_url}")
@@ -21,11 +22,12 @@ def deep_discovery_crawl(target_url):
         crawl_result = app.crawl(
             url=target_url,
             prompt="You are an aggressive QA Automation Tester. \nYour goal is maximize 'Code Coverage'. \n- Do not follow a happy path. \n- Try to click elements you haven't clicked before.",
+            limit=100,
             scrape_options={
                 'formats': ['links'],
                 #? Cố gắng gửi header để bypass ngrok warning (tùy thuộc vào version SDK hỗ trợ)
                 'headers': {
-                    # 'ngrok-skip-browser-warning': 'true', 
+                    # 'ngrok-skip-browser-warning': 'true',
                     'User-Agent': 'Mozilla/5.0 (compatible; FirecrawlBot/1.0)'
                 }
             }

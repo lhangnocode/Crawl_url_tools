@@ -13,46 +13,66 @@ if not api_key:
 
 app = FirecrawlApp(api_key=api_key)
 
-def count_blog_urls(target_url):
-    print(f"⚡ Đang quét (Map) danh sách URL từ: {target_url}...")
+#! KHONG HOAT DONG VOI SPA
+def count_all_urls(target_url):
+    print(f"⚡ Đang quét (Map) toàn bộ danh sách URL từ: {target_url}...")
 
     try:
-        # SỬ DỤNG TÍNH NĂNG MAP: Nhanh hơn Crawl gấp nhiều lần vì không tải nội dung
-        map_result = app.map_url(target_url)
+        # SỬ DỤNG TÍNH NĂNG MAP
+        map_result = app.map(target_url)
 
-        if map_result.get('success'):
+        # --- PHẦN SỬA LỖI QUAN TRỌNG ---
+        # Lỗi cũ: 'MapData' object has no attribute 'get'
+        # Nguyên nhân: SDK trả về Object, không phải Dict.
+        
+        # 1. Lấy danh sách links từ thuộc tính object
+        # Sử dụng getattr để an toàn (nếu có thuộc tính .links thì lấy, không thì trả về list rỗng)
+        if hasattr(map_result, 'links'):
+            raw_links = map_result.links 
+        elif isinstance(map_result, dict):
+             # Fallback: đề phòng trường hợp trả về dict (phiên bản cũ)
             raw_links = map_result.get('links', [])
-            
-            # Lọc chỉ lấy các URL thực sự nằm trong danh sách link trả về
-            # (Map trả về danh sách object, chúng ta chỉ cần lấy trường 'url')
-            all_urls = [item.get('url') for item in raw_links]
-
-            # Bước lọc quan trọng: Đảm bảo chỉ đếm các link thuộc về /blog
-            # (Vì đôi khi map có thể trả về cả link trang chủ hoặc link điều hướng khác)
-            blog_urls = [url for url in all_urls if "/blog" in url]
-
-            # Loại bỏ trùng lặp (nếu có)
-            unique_blog_urls = list(set(blog_urls))
-            total_count = len(unique_blog_urls)
-
-            print(f"\n✅ Đã hoàn tất quét!")
-            print(f"📊 TỔNG SỐ URL TÌM THẤY: {total_count}")
-            
-            # Lưu danh sách link ra file text đơn giản để kiểm tra
-            filename = "list_urls_only.txt"
-            with open(filename, "w", encoding="utf-8") as f:
-                for url in unique_blog_urls:
-                    f.write(f"{url}\n")
-            
-            print(f"📂 Danh sách link đã được lưu vào file: {filename}")
-
         else:
-            print(f"❌ Lỗi khi Map: {map_result.get('error')}")
+            print("⚠️ Cảnh báo: Không tìm thấy thuộc tính 'links' trong kết quả.")
+            print(f"Kiểu dữ liệu thực tế: {type(map_result)}")
+            raw_links = []
+
+        # 2. Xử lý danh sách link
+        all_urls = []
+        for item in raw_links:
+            if isinstance(item, str):
+                all_urls.append(item)
+            elif isinstance(item, dict):
+                url = item.get('url')
+                if url: all_urls.append(url)
+            # Thêm xử lý nếu item bên trong cũng là object (đề phòng)
+            elif hasattr(item, 'url'):
+                all_urls.append(item.url)
+
+        # 3. Loại bỏ trùng lặp và sắp xếp
+        unique_urls = list(set(all_urls))
+        total_count = len(unique_urls)
+
+        print(f"\n✅ Đã hoàn tất quét!")
+        print(f"📊 TỔNG SỐ URL TÌM THẤY: {total_count}")
+        
+        # Lưu danh sách link ra file
+        filename = "list_all_urls.txt"
+        with open(filename, "w", encoding="utf-8") as f:
+            for url in sorted(unique_urls):
+                f.write(f"{url}\n")
+        
+        print(f"📂 Danh sách link đã được lưu vào file: {filename}")
 
     except Exception as e:
         print(f"🚨 Lỗi hệ thống: {str(e)}")
+        # In thêm dir() để debug xem object có những thuộc tính gì nếu vẫn lỗi
+        try:
+            print("🔍 Các thuộc tính có sẵn của object lỗi:", dir(e))
+        except:
+            pass
 
 if __name__ == "__main__":
-    # URL cần đếm
-    TARGET_URL = "https://www.firecrawl.dev/blog"
-    count_blog_urls(TARGET_URL)
+    # URL cần quét
+    TARGET_URL = "https://owasp.org/www-project-benchmark/"
+    count_all_urls(TARGET_URL)

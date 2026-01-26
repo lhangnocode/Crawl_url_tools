@@ -5,7 +5,7 @@ import asyncio
 
 load_dotenv()
 
-llm = ChatGoogle(model="gemini-2.0-flash")
+llm = ChatGoogle(model="gemini-2.5-flash")
 
 extend_system_message = """
 You are an aggressive QA Automation Tester. 
@@ -14,17 +14,24 @@ Your goal is maximize 'Code Coverage'.
 - Try to click elements you haven't clicked before.
 - If you see a Login, login with google account to access internal features.
 - Avoid clicking 'Logout' or 'Sign out' unless you have explored everything else.
+RULES FOR NAVIGATION:
+1. Do not follow a happy path. Try to click elements you haven't clicked before.
+2. If you navigate to a new page causing an error or want to return:
+   - USE THE 'GO_BACK' TOOL. DO NOT USE 'CLOSE_TAB' unless you are 100% sure you opened a new tab explicitly (e.g., target="_blank").
+   - Closing the main tab will crash the browser. BE CAREFUL.
+3. If you see a Login, login with google account to access internal features.
 """
 
 # 2. Task ngắn gọn
 task = """
-Go to https://www.zyte.com/blog/best-web-scraping-apis-2026/. 
+Go to https://owasp.org/www-project-benchmark/. 
 Explore the application deeply by finding and clicking all interactive elements. 
 Map out the structure of the site by visiting every accessible URL.
+IMPORTANT: If you click a link and it opens in the SAME tab, use 'go_back' to return. ONLY use 'close_tab' if you see multiple tabs open.
 """
 
 initial_action = [
-    {'go_to_url': {'url': 'https://www.zyte.com/blog/best-web-scraping-apis-2026/', 'new_tab': True}},
+    {'go_to_url': {'url': 'https://owasp.org/www-project-benchmark/', 'new_tab': False}},
     {'wait': {'seconds': 1}},    
 ]
 
