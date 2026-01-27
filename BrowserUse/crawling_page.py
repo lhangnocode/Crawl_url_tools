@@ -76,7 +76,6 @@ async def main():
         use_vision=True,
         initial_action=initial_action,
         extend_system_message=extend_system_message,
-        # calculate_cost=True # Lưu ý: Một số version browser-use cũ có thể chưa ổn định với tính năng này, nếu lỗi hãy comment lại
     )
 
     result = await agent.run()

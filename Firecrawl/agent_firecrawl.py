@@ -68,5 +68,7 @@ def agent_discovery_crawl(target_url):
         return []
 
 if __name__ == "__main__":
-    TARGET_URL = "https://owasp.org/www-project-benchmark/"
+    # TARGET_URL = "https://owasp.org/www-project-benchmark/"
+    # TARGET_URL = "https://www.zyte.com/blog/best-web-scraping-apis-2026/"
+    TARGET_URL = "https://arxiv.org/abs/2410.15164"
     agent_discovery_crawl(TARGET_URL)
