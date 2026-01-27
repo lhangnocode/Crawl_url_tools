@@ -20,13 +20,16 @@ def deep_discovery_crawl(target_url):
         # Gọi API
         crawl_result = app.crawl(
             url=target_url,
-            prompt="You are an aggressive QA Automation Tester. \nYour goal is maximize 'Code Coverage'. \n- Do not follow a happy path. \n- Try to click elements you haven't clicked before.",
+            allow_external_links=False,
+            max_discovery_depth=10,
+            limit=100,
+            prompt="Find all navigation links, documentation pages, and project details within this specific project.",
             scrape_options={
                 'formats': ['links'],
                 #? Cố gắng gửi header để bypass ngrok warning (tùy thuộc vào version SDK hỗ trợ)
                 'headers': {
                     # 'ngrok-skip-browser-warning': 'true', 
-                    'User-Agent': 'Mozilla/5.0 (compatible; FirecrawlBot/1.0)'
+                    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
                 }
             }
         )
