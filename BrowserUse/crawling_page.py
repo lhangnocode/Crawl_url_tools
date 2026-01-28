@@ -24,14 +24,14 @@ RULES FOR NAVIGATION:
 
 # 2. Task ngắn gọn
 task = """
-Go to https://owasp.org/www-project-benchmark/. 
+Go to http://192.168.1.7:3001/#/. 
 Explore the application deeply by finding and clicking all interactive elements. 
 Map out the structure of the site by visiting every accessible URL.
 IMPORTANT: If you click a link and it opens in the SAME tab, use 'go_back' to return. ONLY use 'close_tab' if you see multiple tabs open.
 """
 
 initial_action = [
-    {'go_to_url': {'url': 'https://owasp.org/www-project-benchmark/', 'new_tab': False}},
+    {'go_to_url': {'url': 'http://192.168.1.7:3001/#/', 'new_tab': False}},
     {'wait': {'seconds': 1}},    
 ]
 
@@ -81,6 +81,7 @@ async def main():
     result = await agent.run()
 
     print(result)
+    print(result.urls())
     # print(f"Token usage: {result.usage}") # Kiểm tra attribute usage trước khi in để tránh lỗi runtime
 
 asyncio.run(main())
