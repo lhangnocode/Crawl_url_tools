@@ -1,0 +1,57 @@
+[project]
+name = "crawling-tools"
+version = "0.1.0"
+description = "Collection of web crawling tools."
+readme = "README.md"
+requires-python = ">=3.13"
+
+dependencies = [
+    "beautifulsoup4>=4.15.0",
+    "browser-use>=0.13.7",
+    "browser-use-sdk>=3.4.2",
+    "firecrawl-py>=4.33.1",
+    "httpx>=0.28.1",
+    "lxml>=6.1.1",
+    "playwright>=1.61.0",
+    "pydantic>=2.12.5",
+    "python-dotenv>=1.2.2",
+    "rich>=14.3.1",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.18.2",
+    "pytest>=8.4.2",
+    "pytest-asyncio>=1.2.0",
+    "ruff>=0.13.2",
+]
+
+# ----------------------------
+# Ruff
+# ----------------------------
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+respect-gitignore = true
+
+[tool.ruff.lint]
+select = [
+    "E",
+    "F",
+    "I",
+    "UP",
+]
+
+ignore = [
+    "E501", # line too long (handled by formatter)
+]
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+docstring-code-format = true

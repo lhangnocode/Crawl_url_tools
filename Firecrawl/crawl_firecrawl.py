@@ -1,6 +1,5 @@
 import os
-import json
-import time
+
 from dotenv import load_dotenv
 from firecrawl import FirecrawlApp
 
@@ -15,7 +14,7 @@ app = FirecrawlApp(api_key=api_key)
 
 def deep_discovery_crawl(target_url):
     print(f"🕵️‍♂️ Đang kích hoạt Deep Crawl (JS Rendering) tại: {target_url}")
-    
+
     try:
         # Gọi API
         crawl_result = app.crawl(
@@ -28,7 +27,7 @@ def deep_discovery_crawl(target_url):
                 'formats': ['links'],
                 #? Cố gắng gửi header để bypass ngrok warning (tùy thuộc vào version SDK hỗ trợ)
                 'headers': {
-                    # 'ngrok-skip-browser-warning': 'true', 
+                    # 'ngrok-skip-browser-warning': 'true',
                     'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
                 }
             }
@@ -38,14 +37,14 @@ def deep_discovery_crawl(target_url):
         # Thay vì kiểm tra dict, ta kiểm tra xem có thuộc tính 'data' hay không
         if hasattr(crawl_result, 'data'):
             data = crawl_result.data # Truy cập bằng dấu chấm, không dùng .get()
-            
+
             unique_urls = set()
             print(f"🔄 Đang trích xuất link từ {len(data)} trang đã quét...")
 
             for page in data:
                 # 2. Dựa vào logs của bạn, 'links' có thể nằm trong metadata hoặc là thuộc tính trực tiếp
                 # Ta sẽ thử lấy từ cả 2 nguồn cho chắc chắn
-                
+
                 # Cách lấy 1: Lấy trực tiếp nếu là dict
                 if isinstance(page, dict):
                     found_links = page.get('links', [])
@@ -66,23 +65,22 @@ def deep_discovery_crawl(target_url):
             # Lọc chỉ lấy link blog
             all_urls = sorted(unique_urls)
 
-            print(f"\n✅ Đã hoàn tất!")
+            print("\n✅ Đã hoàn tất!")
             print(f"📊 TỔNG SỐ URL TÌM THẤY: {len(all_urls)}")
 
             filename = "all_crawled_urls.txt"
             with open(filename, "w", encoding="utf-8") as f:
-                for url in all_urls:
-                    f.write(f"{url}\n")
+                f.writelines(f"{url}\n" for url in all_urls)
 
             print(f"📂 Danh sách đã lưu tại: {filename}")
-            
+
         else:
             print("❌ Không tìm thấy dữ liệu (Response không có attribute 'data')")
             # In ra kiểu dữ liệu thực tế để debug nếu vẫn lỗi
             print(f"Kiểu dữ liệu trả về: {type(crawl_result)}")
 
     except Exception as e:
-        print(f"🚨 Lỗi hệ thống: {str(e)}")
+        print(f"🚨 Lỗi hệ thống: {e!s}")
 
 if __name__ == "__main__":
     # TARGET_URL = "https://www.firecrawl.dev/blog"

@@ -1,25 +1,84 @@
-# Virtual environment
-venv/
-.env
-
-# Python cache
+# =====================================
+# Python
+# =====================================
 __pycache__/
 *.py[cod]
+*$py.class
 
-# Logs
-*.log
+# =====================================
+# Virtual Environment
+# =====================================
+.venv/
+venv/
+env/
 
-#txt files
-*.txt
-!requirements.txt
+# =====================================
+# Environment Variables
+# =====================================
+.env
+.env.*
+!.env.example
 
-# Editor / OS
-.vscode/
-.idea/
-.DS_Store
+# =====================================
+# uv
+# =====================================
+.python-version
 
-# Build / test
+# Commit uv.lock đối với application
+# (KHÔNG ignore uv.lock)
+
+# =====================================
+# Ruff / MyPy / Pytest
+# =====================================
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# =====================================
+# Build
+# =====================================
 build/
 dist/
-htmlcov/
-.coverage
+*.egg-info/
+
+# =====================================
+# IDE
+# =====================================
+.vscode/
+.idea/
+
+# =====================================
+# OS
+# =====================================
+.DS_Store
+Thumbs.db
+
+# =====================================
+# Logs
+# =====================================
+*.log
+
+# =====================================
+# Temporary
+# =====================================
+*.tmp
+*.temp
+.cache/
+
+# =====================================
+# Playwright
+# =====================================
+playwright-report/
+test-results/
+
+# Browser Use screenshots/videos
+screenshots/
+videos/
+
+# =====================================
+# Firecrawl Output
+# =====================================
+*.jsonl

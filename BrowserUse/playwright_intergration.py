@@ -5,7 +5,6 @@ import sys
 import tempfile
 
 #! BROWSER USE + PLAYWRIGHT
-
 from pydantic import BaseModel, Field
 
 # Check for required dependencies first - before other imports
@@ -20,7 +19,6 @@ except ImportError as e:
 	sys.exit(1)
 
 from browser_use import Agent, BrowserSession, ChatGoogle, Tools
-from browser_use.browser import ProxySettings
 from browser_use.agent.views import ActionResult
 
 # Global Playwright browser instance - shared between custom actions
@@ -104,9 +102,9 @@ async def start_chrome_with_debug_port(port: int = 9222, proxy: str | None = Non
         # Xóa http:// nếu có để đảm bảo format đúng cho chrome flag
         clean_proxy = proxy.replace("http://", "").replace("https://", "")
         cmd.append(f'--proxy-server={clean_proxy}')
-        
+
         # QUAN TRỌNG: ZAP dùng chứng chỉ tự ký (Self-signed), Chrome sẽ chặn nếu không có dòng này
-        cmd.append('--ignore-certificate-errors') 
+        cmd.append('--ignore-certificate-errors')
     # --------------------------
 
     # Start Chrome process
@@ -214,7 +212,7 @@ async def playwright_fill_form(params: PlaywrightFillFormAction, browser_session
 		)
 
 	except Exception as e:
-		error_msg = f'❌ Playwright form filling failed: {str(e)}'
+		error_msg = f'❌ Playwright form filling failed: {e!s}'
 		return ActionResult(error=error_msg)
 
 
@@ -248,7 +246,7 @@ async def playwright_screenshot(params: PlaywrightScreenshotAction, browser_sess
 		)
 
 	except Exception as e:
-		error_msg = f'❌ Playwright screenshot failed: {str(e)}'
+		error_msg = f'❌ Playwright screenshot failed: {e!s}'
 		return ActionResult(error=error_msg)
 
 
@@ -308,7 +306,7 @@ async def playwright_get_text(params: PlaywrightGetTextAction, browser_session: 
 		)
 
 	except Exception as e:
-		error_msg = f'❌ Playwright text extraction failed: {str(e)}'
+		error_msg = f'❌ Playwright text extraction failed: {e!s}'
 		return ActionResult(error=error_msg)
 
 llm = ChatGoogle(model="gemini-2.5-flash")
@@ -332,7 +330,7 @@ initial_action = [
 
     {'go_to_url': {'url': 'http://192.168.1.14:3001/#/', 'new_tab': True}},
 
-    {'wait': {'seconds': 1}},    
+    {'wait': {'seconds': 1}},
 
 ]
 
@@ -352,7 +350,7 @@ async def main():
     try:
         # --- CẤU HÌNH PROXY ZAP TẠI ĐÂY ---
         zap_proxy_url = "http://localhost:8080"
-        
+
         # Step 1: Start Chrome with CDP debugging AND Proxy
         chrome_process = await start_chrome_with_debug_port(port=9222, proxy=zap_proxy_url)
         cdp_url = 'http://localhost:9222'
@@ -361,7 +359,7 @@ async def main():
         await connect_playwright_to_cdp(cdp_url)
 
         # Step 3: Create Browser-Use session connected to same Chrome
-        # Lưu ý: BrowserSession ở đây chỉ cần connect vào CDP, 
+        # Lưu ý: BrowserSession ở đây chỉ cần connect vào CDP,
         # việc proxy đã được xử lý ở tầng process Chrome rồi.
         browser_session = BrowserSession(cdp_url=cdp_url)
 

@@ -1,5 +1,5 @@
 import os
-import json
+
 from dotenv import load_dotenv
 from firecrawl import FirecrawlApp
 
@@ -24,11 +24,11 @@ def count_all_urls(target_url):
         # --- PHẦN SỬA LỖI QUAN TRỌNG ---
         # Lỗi cũ: 'MapData' object has no attribute 'get'
         # Nguyên nhân: SDK trả về Object, không phải Dict.
-        
+
         # 1. Lấy danh sách links từ thuộc tính object
         # Sử dụng getattr để an toàn (nếu có thuộc tính .links thì lấy, không thì trả về list rỗng)
         if hasattr(map_result, 'links'):
-            raw_links = map_result.links 
+            raw_links = map_result.links
         elif isinstance(map_result, dict):
              # Fallback: đề phòng trường hợp trả về dict (phiên bản cũ)
             raw_links = map_result.get('links', [])
@@ -53,19 +53,19 @@ def count_all_urls(target_url):
         unique_urls = list(set(all_urls))
         total_count = len(unique_urls)
 
-        print(f"\n✅ Đã hoàn tất quét!")
+        print("\n✅ Đã hoàn tất quét!")
         print(f"📊 TỔNG SỐ URL TÌM THẤY: {total_count}")
-        
+
         # Lưu danh sách link ra file
         filename = "list_all_urls.txt"
         with open(filename, "w", encoding="utf-8") as f:
             for url in sorted(unique_urls):
                 f.write(f"{url}\n")
-        
+
         print(f"📂 Danh sách link đã được lưu vào file: {filename}")
 
     except Exception as e:
-        print(f"🚨 Lỗi hệ thống: {str(e)}")
+        print(f"🚨 Lỗi hệ thống: {e!s}")
         # In thêm dir() để debug xem object có những thuộc tính gì nếu vẫn lỗi
         try:
             print("🔍 Các thuộc tính có sẵn của object lỗi:", dir(e))

@@ -1,13 +1,10 @@
-from browser_use import Agent, Browser, BrowserProfile, BrowserSession, ChatGoogle
+from browser_use import Agent, Browser, ChatGoogle
 from browser_use.browser import ProxySettings
-
 from dotenv import load_dotenv
 
 load_dotenv()
 
 import asyncio
-
-
 
 llm = ChatGoogle(model="gemini-2.5-pro")
 
@@ -31,7 +28,7 @@ initial_action = [
 
     {'go_to_url': {'url': 'https://www.zyte.com/blog/best-web-scraping-apis-2026/', 'new_tab': True}},
 
-    {'wait': {'seconds': 1}},    
+    {'wait': {'seconds': 1}},
 
 ]
 

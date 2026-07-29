@@ -1,9 +1,8 @@
 import os
-import json
+
 from dotenv import load_dotenv
 from firecrawl import FirecrawlApp
 from pydantic import BaseModel, Field
-from typing import List
 
 load_dotenv()
 api_key = os.getenv("FIRECRAWL_API_KEY")
@@ -16,12 +15,12 @@ app = FirecrawlApp(api_key=api_key)
 
 # Định nghĩa Schema để Agent trả về dữ liệu cấu trúc
 class DiscoveredLinks(BaseModel):
-    links: List[str] = Field(description="Danh sách các URL tìm thấy sau khi tương tác với trang")
-    actions_taken: List[str] = Field(description="Các hành động Agent đã thực hiện (click, scroll...)")
+    links: list[str] = Field(description="Danh sách các URL tìm thấy sau khi tương tác với trang")
+    actions_taken: list[str] = Field(description="Các hành động Agent đã thực hiện (click, scroll...)")
 
 def agent_discovery_crawl(target_url):
     print(f"🤖 Đang kích hoạt AI Agent để khám phá: {target_url}")
-    
+
     try:
         # Sử dụng Agent để thực hiện Deep Research thay vì Crawl thông thường
         # Agent sẽ tự động xử lý JS, Click các menu ẩn hoặc Scroll để load thêm
@@ -44,27 +43,26 @@ def agent_discovery_crawl(target_url):
             actions = data.get('actions_taken', [])
 
             print(f"⚙️ Các hành động AI đã thực hiện: {', '.join(actions)}")
-            
+
             # Loại bỏ trùng lặp và làm sạch link
             unique_urls = sorted(list(set(discovered_urls)))
 
-            print(f"\n✅ Agent đã hoàn tất khám phá!")
+            print("\n✅ Agent đã hoàn tất khám phá!")
             print(f"📊 TỔNG SỐ URL AI TÌM THẤY: {len(unique_urls)}")
 
             filename = "agent_discovered_urls.txt"
             with open(filename, "w", encoding="utf-8") as f:
-                for url in unique_urls:
-                    f.write(f"{url}\n")
+                f.writelines(f"{url}\n" for url in unique_urls)
 
             print(f"📂 Danh sách đã lưu tại: {filename}")
             return unique_urls
-            
+
         else:
             print("❌ Agent không trả về dữ liệu thành công.")
             return []
 
     except Exception as e:
-        print(f"🚨 Lỗi hệ thống Agent: {str(e)}")
+        print(f"🚨 Lỗi hệ thống Agent: {e!s}")
         return []
 
 if __name__ == "__main__":

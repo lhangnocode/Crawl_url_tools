@@ -1,5 +1,6 @@
 import asyncio
-from urllib.parse import urlparse, urljoin
+from urllib.parse import urljoin, urlparse
+
 from playwright.async_api import async_playwright
 
 # Cấu hình
@@ -21,11 +22,11 @@ async def crawl_website():
 
         # Xác định domain gốc để không crawl sang web khác
         base_domain = urlparse(START_URL).netloc
-        
+
         # Danh sách cần crawl và danh sách đã crawl
         urls_to_visit = [START_URL]
         visited_urls = set()
-        
+
         print(f"🚀 Bắt đầu crawl tại: {START_URL}")
 
         while urls_to_visit and len(visited_urls) < MAX_PAGES:
@@ -37,11 +38,11 @@ async def crawl_website():
 
             try:
                 print(f"Analyzing: {current_url}")
-                
+
                 # Truy cập trang
                 # wait_until='networkidle': Chờ đến khi không còn kết nối mạng (trang tải xong hết JS)
                 await page.goto(current_url, wait_until='networkidle', timeout=60000)
-                
+
                 visited_urls.add(current_url)
 
                 # --- TRÍCH XUẤT URL ---
@@ -52,10 +53,10 @@ async def crawl_website():
                 for link in links:
                     # 1. Xử lý đường dẫn tương đối (ví dụ: /about -> https://domain.com/about)
                     absolute_link = urljoin(current_url, link)
-                    
+
                     # 2. Loại bỏ phần anchor (ví dụ: #section1) để tránh trùng lặp
                     absolute_link = absolute_link.split('#')[0]
-                    
+
                     # 3. Phân tích link
                     parsed_link = urlparse(absolute_link)
 
@@ -64,11 +65,11 @@ async def crawl_website():
                     # - Không phải là file ảnh/pdf...
                     # - Chưa từng visit
                     # - Chưa có trong hàng đợi
-                    if (parsed_link.netloc == base_domain and 
-                        absolute_link not in visited_urls and 
+                    if (parsed_link.netloc == base_domain and
+                        absolute_link not in visited_urls and
                         absolute_link not in urls_to_visit and
                         parsed_link.scheme in ['http', 'https']):
-                        
+
                         urls_to_visit.append(absolute_link)
                         # print(f"  --> Tìm thấy link mới: {absolute_link}")
 
