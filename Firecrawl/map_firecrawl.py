@@ -74,5 +74,5 @@ def count_all_urls(target_url):
 
 if __name__ == "__main__":
     # URL cần quét
-    TARGET_URL = "https://owasp.org/www-project-benchmark/"
+    TARGET_URL = "http://127.0.0.1:3000/#/"
     count_all_urls(TARGET_URL)

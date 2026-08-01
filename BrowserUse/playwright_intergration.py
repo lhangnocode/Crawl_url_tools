@@ -4,7 +4,7 @@ import subprocess
 import sys
 import tempfile
 
-#! BROWSER USE + PLAYWRIGHT
+#! BROWSER USE + PLAYWRIGHT (Enhance the recognition and interaction capabilities of Browser-Use with Playwright)
 from pydantic import BaseModel, Field
 
 # Check for required dependencies first - before other imports
