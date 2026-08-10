@@ -15,6 +15,7 @@ dependencies = [
     "playwright>=1.61.0",
     "pydantic>=2.12.5",
     "python-dotenv>=1.2.2",
+    "python-owasp-zap-v2-4>=0.1.0",
     "rich>=14.3.1",
 ]
 

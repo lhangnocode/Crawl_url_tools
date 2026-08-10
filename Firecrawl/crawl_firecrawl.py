@@ -23,7 +23,7 @@ def deep_discovery_crawl(target_url):
             url=target_url,
             allow_external_links=False,
             max_discovery_depth=20,
-            limit=100,
+            limit=1000,
             crawl_entire_domain=True, # QUAN TRỌNG: Quét toàn bộ nội bộ domain thay vì chỉ URL con
             sitemap="skip",           # Bỏ qua sitemap vì localhost SPA không cần
             scrape_options={

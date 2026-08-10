@@ -52,8 +52,8 @@ def merge_url_lists(file1, file2, output_file="merged_URL.txt", remove_duplicate
 
 if __name__ == "__main__":
     # Change these to your desired input files
-    file1 = "agent_discovered_urls.txt"
-    file2 = "ngrok_crawled_paths.txt"
+    file1 = "Firecrawl/agent_discovered_urls.txt"
+    file2 = "Firecrawl/ngrok_endpoints.txt"
 
     # Merge URLs from both files
     merge_url_lists(file1, file2)

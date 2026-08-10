@@ -84,3 +84,7 @@ videos/
 *.jsonl
 
 *.txt
+*.csv
+*.json
+
+node_modules/
