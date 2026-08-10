@@ -1,5 +1,3 @@
-from pathlib import Path
-
 # Prefix cần giữ
 PREFIX = "https://multispinous-juliann-soberly.ngrok-free.dev/"
 
@@ -13,7 +11,7 @@ OUTPUT_FILE = "filtered_urls.txt"
 def filter_urls(input_file: str, output_file: str):
     unique_urls = set()
 
-    with open(input_file, "r", encoding="utf-8") as f:
+    with open(input_file, encoding="utf-8") as f:
         for line in f:
             url = line.strip()
 

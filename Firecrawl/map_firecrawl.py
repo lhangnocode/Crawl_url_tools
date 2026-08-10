@@ -1,12 +1,12 @@
-import json
 import csv
+import json
+import os
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlparse
 
-from firecrawl import Firecrawl
 from dotenv import load_dotenv
-import os
+from firecrawl import Firecrawl
 
 load_dotenv()
 
@@ -14,9 +14,9 @@ load_dotenv()
 # Cấu hình
 # ---------------------------------------------------------------------------
 TARGET_URL = "https://firecrawl.dev"  # đổi thành site bạn muốn map
-LIMIT = 5000                          # số URL tối đa muốn lấy
-SEARCH = None                         # vd: "docs" -> chỉ lấy URL liên quan "docs"
-SITEMAP_MODE = "include"              # "include" | "only" | "skip"
+LIMIT = 5000  # số URL tối đa muốn lấy
+SEARCH = None  # vd: "docs" -> chỉ lấy URL liên quan "docs"
+SITEMAP_MODE = "include"  # "include" | "only" | "skip"
 
 OUTPUT_DIR = Path("map_output")
 OUTPUT_DIR.mkdir(exist_ok=True)

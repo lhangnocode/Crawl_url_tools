@@ -1,7 +1,7 @@
 def merge_url_lists(file1, file2, output_file="merged_URL.txt", remove_duplicates=True):
     """
     Merge URLs from two files and save to output file.
-    
+
     Args:
         file1: Path to the first URL file
         file2: Path to the second URL file
@@ -10,11 +10,11 @@ def merge_url_lists(file1, file2, output_file="merged_URL.txt", remove_duplicate
     """
     try:
         # Read URLs from first file
-        with open(file1, encoding='utf-8') as f:
+        with open(file1, encoding="utf-8") as f:
             urls1 = f.readlines()
 
         # Read URLs from second file
-        with open(file2, encoding='utf-8') as f:
+        with open(file2, encoding="utf-8") as f:
             urls2 = f.readlines()
 
         # Remove whitespace and empty lines
@@ -30,8 +30,8 @@ def merge_url_lists(file1, file2, output_file="merged_URL.txt", remove_duplicate
             merged_urls.sort()  # Sort alphabetically
 
         # Save to output file
-        with open(output_file, 'w', encoding='utf-8') as f:
-            f.write('\n'.join(merged_urls))
+        with open(output_file, "w", encoding="utf-8") as f:
+            f.write("\n".join(merged_urls))
 
         print(f"✓ File 1: {len(urls1)} URLs")
         print(f"✓ File 2: {len(urls2)} URLs")

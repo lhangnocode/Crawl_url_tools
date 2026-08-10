@@ -1,6 +1,7 @@
 import asyncio
-import json
 import csv
+import json
+import os
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlparse
@@ -8,7 +9,6 @@ from urllib.parse import urlparse
 from browser_use import Agent, Browser, BrowserProfile, ChatOpenAI
 from browser_use.browser import ProxySettings
 from dotenv import load_dotenv
-import os
 
 load_dotenv()
 
@@ -26,13 +26,12 @@ OUTPUT_DIR = Path("crawl_output")
 OUTPUT_DIR.mkdir(exist_ok=True)
 RUN_ID = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-MAX_STEPS = 100 
+MAX_STEPS = 100
 
-# LLM: Qwen qua endpoint tương thích OpenAI của DashScope (thay cho Gemini để tránh rate limit).
 llm = ChatOpenAI(
-    model="qwen3.5-plus",
-    api_key=os.getenv("DASHSCOPE_API_KEY"),
-    base_url="https://dashscope-intl.aliyuncs.com/compatible-mode/v1",  
+    model=os.getenv("NARAROUTER_MODEL", "mistral-medium-3-5"),
+    api_key=os.getenv("NARAROUTER_API_KEY"),
+    base_url=os.getenv("NARAROUTER_BASE_URL"),
 )
 
 extend_system_message = """

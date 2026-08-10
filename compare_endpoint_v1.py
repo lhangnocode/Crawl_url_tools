@@ -1,6 +1,5 @@
 import json
-from urllib.parse import urlsplit, parse_qsl, urlencode, quote
-
+from urllib.parse import parse_qsl, quote, urlsplit
 
 JSON_FILE = "BrowserUse/crawl_output/zap_urls_20260802_151347.json"
 TXT_FILE = "Firecrawl/ngrok_endpoints.txt"
@@ -20,9 +19,7 @@ KEEP_QUERY_PARAMS = {
 }
 
 # Các endpoint luôn bỏ query
-DROP_QUERY_PREFIXES = (
-    "/socket.io",
-)
+DROP_QUERY_PREFIXES = ("/socket.io",)
 
 
 def normalize_endpoint(endpoint: str) -> str:
@@ -53,9 +50,7 @@ def normalize_endpoint(endpoint: str) -> str:
 
     # Giữ các query parameter cần thiết
     params = [
-        (k, v)
-        for k, v in parse_qsl(parsed.query, keep_blank_values=True)
-        if k in KEEP_QUERY_PARAMS
+        (k, v) for k, v in parse_qsl(parsed.query, keep_blank_values=True) if k in KEEP_QUERY_PARAMS
     ]
 
     if not params:
@@ -78,24 +73,17 @@ def normalize_endpoint(endpoint: str) -> str:
 
     return f"{path}?{'&'.join(normalized)}"
 
+
 def load_json(path: str) -> set[str]:
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         data = json.load(f)
 
-    return {
-        normalize_endpoint(item)
-        for item in data
-        if isinstance(item, str) and item.strip()
-    }
+    return {normalize_endpoint(item) for item in data if isinstance(item, str) and item.strip()}
 
 
 def load_txt(path: str) -> set[str]:
-    with open(path, "r", encoding="utf-8") as f:
-        return {
-            normalize_endpoint(line)
-            for line in f
-            if line.strip()
-        }
+    with open(path, encoding="utf-8") as f:
+        return {normalize_endpoint(line) for line in f if line.strip()}
 
 
 def main():
@@ -129,10 +117,7 @@ def main():
     if larger_name is None:
         print("\nHai file có cùng số lượng endpoint.")
     else:
-        print(
-            f"\n{larger_name} contains "
-            f"{len(larger) - len(smaller)} more unique endpoints."
-        )
+        print(f"\n{larger_name} contains {len(larger) - len(smaller)} more unique endpoints.")
 
         only_in_larger = sorted(larger - smaller)
         only_in_smaller = sorted(smaller - larger)
