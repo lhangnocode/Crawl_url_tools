@@ -54,7 +54,7 @@ def agent_discovery_crawl(target_url):
             print("\n✅ Agent đã hoàn tất khám phá!")
             print(f"📊 TỔNG SỐ URL AI TÌM THẤY: {len(unique_urls)}")
 
-            filename = "agent_discovered_urls.txt"
+            filename = "agent_discovered_urls(V2).txt"
             with open(filename, "w", encoding="utf-8") as f:
                 f.writelines(f"{url}\n" for url in unique_urls)
 

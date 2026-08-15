@@ -13,13 +13,13 @@ load_dotenv()
 # ---------------------------------------------------------------------------
 # Cấu hình
 # ---------------------------------------------------------------------------
-TARGET_URL = "https://firecrawl.dev"  # đổi thành site bạn muốn map
+TARGET_URL = "https://multispinous-juliann-soberly.ngrok-free.dev"  # đổi thành site bạn muốn map
 LIMIT = 5000  # số URL tối đa muốn lấy
 SEARCH = None  # vd: "docs" -> chỉ lấy URL liên quan "docs"
 SITEMAP_MODE = "include"  # "include" | "only" | "skip"
 
-OUTPUT_DIR = Path("map_output")
-OUTPUT_DIR.mkdir(exist_ok=True)
+OUTPUT_DIR = Path(__file__).resolve().parent / "map_output"
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 RUN_ID = datetime.now().strftime("%Y%m%d_%H%M%S")
 
 firecrawl = Firecrawl(api_key=os.getenv("FIRECRAWL_API_KEY"))

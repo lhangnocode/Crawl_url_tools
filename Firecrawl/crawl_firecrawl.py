@@ -65,7 +65,7 @@ def deep_discovery_crawl(target_url):
             print("\n✅ Đã hoàn tất!")
             print(f"📊 TỔNG SỐ URL TÌM THẤY VÀ CRAWL ĐƯỢC: {len(all_urls)}")
 
-            filename = "all_crawled_urls.txt"
+            filename = "crawl_firecrawl_urls.txt"
             with open(filename, "w", encoding="utf-8") as f:
                 f.writelines(f"{url}\n" for url in all_urls)
 

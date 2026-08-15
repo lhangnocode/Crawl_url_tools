@@ -29,7 +29,7 @@ def export_ngrok_urls():
 
             # Sắp xếp và lưu ra file
             sorted_paths = sorted(unique_paths)
-            output_file = "ngrok_crawled_paths.txt"
+            output_file = "ngrok_endpoints.txt"
 
             with open(output_file, "w", encoding="utf-8") as f:
                 f.writelines(f"{path}\n" for path in sorted_paths)
