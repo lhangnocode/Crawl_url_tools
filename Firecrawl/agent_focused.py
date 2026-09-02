@@ -24,10 +24,78 @@ class DiscoveredLinks(BaseModel):
     actions_taken: list[str] = Field(description="Actions the AI performed (click, scroll, submit, login...)")
 
 
-# --- GENERIC DEEP-INTERACTION PROMPT (EN) ---
-# General enough to reuse on other apps: it pushes the agent to trigger
-# not just GET navigation, but also POST/PUT/PATCH/DELETE via real form
-# submissions and state-changing actions.
+# --- MULTI-PHASE DEEP-INTERACTION PROMPTS (EN) ---
+# Split into several short, focused agent runs instead of one long checklist.
+# Each phase reuses the SAME login session context is NOT guaranteed across
+# separate agent calls (each call is a fresh browser session), so phases that
+# depend on being logged in must redo register+login themselves — kept short
+# on purpose so each individual job has a much smaller chance of stalling.
+
+PHASE_ACCOUNT_AND_CORE = """
+You are exploring an Angular single-page app with hash-based routing
+(routes start with '#/'). Do the following in order and record every
+resulting URL/route:
+
+1. Register a new account (name, email like test+timestamp@example.com,
+   strong password) and log in.
+2. Open the account/user menu (top-right icon) and click into EVERY item
+   inside it once: addresses, payment methods, order history, wallet,
+   privacy & security.
+3. Inside "Privacy & Security", open the tab itself first (record that URL),
+   then open EACH sub-tab inside it one by one (change password, two-factor
+   authentication, data export, last login IP, privacy policy).
+4. Under "Address", click "Add new address" and submit it with real data.
+   Then go back to the saved addresses list and click the EDIT icon on the
+   address you just created (not just view it).
+
+Record the exact URL/route after each action. Return ALL routes visited.
+"""
+
+PHASE_COMMERCE_AND_FORMS = """
+You are exploring an Angular single-page e-commerce app (hash routing,
+'#/...'). Log in with a throwaway test account if a login screen appears
+(register one if needed), then do the following, recording every resulting
+URL/route:
+
+1. Add a product to the basket/cart, then proceed through checkout all the
+   way to order summary and order completion.
+2. Use the "Track Order" / "Track Result" feature TWICE: once by submitting
+   a real order id, and once by opening the page WITHOUT entering any id.
+3. Submit the "Complaint" (or "Feedback") form and the "Contact" form with
+   realistic data.
+4. Open the chatbot widget and send it at least one real message so a
+   conversation gets created.
+
+Record the exact URL/route after each action. Return ALL routes visited.
+"""
+
+PHASE_RESTRICTED_AND_HIDDEN = """
+You are exploring an Angular single-page app (hash routing, '#/...').
+This is an authorized security-testing target. Do the following, recording
+every resulting URL/route — including error/denied pages, which are valid
+results too:
+
+1. Try to directly navigate to any "Administration" or "Accounting" section
+   you can find a link to (footer, about page, admin menu). Record whatever
+   page you land on, even if it's an access-denied/403 page.
+2. On the Score Board / Challenges page, click on 2-3 of the small
+   hint/star/info icons next to individual challenges to open their detail
+   popups.
+3. Look for a floating "Hacking Instructor" tutorial icon (often bottom-left
+   or bottom-right corner) and open it if present.
+4. Look for any crypto/NFT/token-sale related links, often reachable from
+   the Wallet page, a "Web3" menu, or the footer, and open each one you find.
+
+Record the exact URL/route after each action. Return ALL routes visited.
+"""
+
+MULTI_PHASE_PROMPTS = [
+    ("account_and_core", PHASE_ACCOUNT_AND_CORE),
+    ("commerce_and_forms", PHASE_COMMERCE_AND_FORMS),
+    ("restricted_and_hidden", PHASE_RESTRICTED_AND_HIDDEN),
+]
+
+# Kept for reference / fallback single-shot mode.
 GENERIC_DEEP_INTERACTION_PROMPT = """
 You are a web application discovery expert. Interact with the target site
 to reveal as many endpoints as possible — not just navigation links (GET),
@@ -186,43 +254,50 @@ def extract_ngrok_endpoints() -> list[str]:
 
 # --- MAIN PIPELINE ---
 if __name__ == "__main__":
-    TARGET_URL = "https://multispinous-juliann-soberly.ngrok-free.dev"
+    TARGET_URL = "https://multispinous-juliann-soberly.ngrok-free.dev/#/"
     session = _make_retrying_session()
 
     # Bước 0: xác nhận API/tài khoản hoạt động bình thường trước khi chạy
-    # tác vụ nặng — bỏ comment dòng dưới nếu muốn kiểm tra lại; nếu bạn đã
-    # từng thấy sanity check PASS, có thể bỏ qua để tiết kiệm thời gian.
+    # tác vụ nặng — bỏ comment nếu muốn kiểm tra lại.
     # if not sanity_check_agent(session, TARGET_URL):
     #     print("⛔ Dừng lại: cần xử lý vấn đề API/tài khoản trước khi thử prompt phức tạp hơn.")
     #     exit()
 
-    print("\n[PHASE 1] 🤖 Launching AI Agent (manual poll, real-time progress)...")
-    job_id = start_agent_job(session, TARGET_URL, GENERIC_DEEP_INTERACTION_PROMPT,
-                              DiscoveredLinks.model_json_schema())
+    all_ui_links: set[str] = set()
+    all_actions: list[str] = []
 
-    ui_links: list[str] = []
-    if job_id:
-        result_json = poll_agent_job(session, job_id, max_wait_seconds=1200, poll_interval=10)
+    for phase_name, phase_prompt in MULTI_PHASE_PROMPTS:
+        print(f"\n[PHASE 1.{phase_name}] 🤖 Launching AI Agent for: {phase_name}")
+        job_id = start_agent_job(session, TARGET_URL, phase_prompt, DiscoveredLinks.model_json_schema())
+
+        if not job_id:
+            print(f"❌ [{phase_name}] Không tạo được agent job, bỏ qua phase này.")
+            continue
+
+        result_json = poll_agent_job(session, job_id, max_wait_seconds=600, poll_interval=10)
         if result_json and result_json.get("status") == "completed":
             data = result_json.get("data") or {}
-            ui_links = sorted(set(data.get("links", []) or []))
-            actions = data.get("actions_taken", []) or []
-            print(f"✅ Agent finished. Actions taken: {', '.join(actions)}")
+            phase_links = data.get("links", []) or []
+            phase_actions = data.get("actions_taken", []) or []
+            print(f"✅ [{phase_name}] Finished. {len(phase_links)} links, actions: {', '.join(phase_actions)}")
+            all_ui_links.update(phase_links)
+            all_actions.extend(f"[{phase_name}] {a}" for a in phase_actions)
         else:
-            print("⚠️ Agent job không hoàn tất trong thời gian chờ. "
-                  f"Job id để tra cứu/hủy trên dashboard Firecrawl: {job_id}")
-    else:
-        print("❌ Không tạo được agent job (không có job id trong response).")
+            print(f"⚠️ [{phase_name}] Job không hoàn tất trong thời gian chờ. "
+                  f"Job id để tra cứu/hủy: {job_id}")
+
+    ui_links = sorted(all_ui_links)
+    print(f"\n📊 TỔNG SỐ URL client-side thu được (gộp cả 3 phase): {len(ui_links)}")
 
     # Thu thập lại toàn bộ traffic từ Ngrok
     backend_endpoints = extract_ngrok_endpoints()
 
     if ui_links:
-        with open("Avideo_agent_ui.txt", "w", encoding="utf-8") as f:
+        with open("agent_ui_links(V8).txt", "w", encoding="utf-8") as f:
             f.writelines(f"{url}\n" for url in ui_links)
-        print(f"📂 Saved {len(ui_links)} UI links to: Avideo_agent_ui.txt")
+        print(f"📂 Saved {len(ui_links)} UI links to: agent_ui_links(V8).txt")
 
     if backend_endpoints:
-        with open("Avideo_ngrok_backend_endpoints(V9).txt", "w", encoding="utf-8") as f:
+        with open("ngrok_backend_endpoints(V8).txt", "w", encoding="utf-8") as f:
             f.writelines(f"{ep}\n" for ep in backend_endpoints)
-        print(f"📂 Saved {len(backend_endpoints)} server endpoints to: Avideo_ngrok_backend_endpoints(V9).txt")
+        print(f"📂 Saved {len(backend_endpoints)} server endpoints to: ngrok_backend_endpoints(V8).txt")
