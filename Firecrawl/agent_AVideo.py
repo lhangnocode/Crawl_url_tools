@@ -24,35 +24,49 @@ class DiscoveredLinks(BaseModel):
     actions_taken: list[str] = Field(description="Actions the AI performed (click, scroll, submit, login...)")
 
 
-# --- GENERIC DEEP-INTERACTION PROMPT (EN) ---
-# General enough to reuse on other apps: it pushes the agent to trigger
-# not just GET navigation, but also POST/PUT/PATCH/DELETE via real form
-# submissions and state-changing actions.
 GENERIC_DEEP_INTERACTION_PROMPT = """
-You are a web application discovery expert. Interact with the target site
-to reveal as many endpoints as possible — not just navigation links (GET),
-but also WRITE requests (POST/PUT/PATCH/DELETE) triggered by real actions.
+You are a web application security discovery expert. Your goal is to explore
+the target web platform to reveal as many distinct endpoints, routes, and
+interaction points as possible (GET navigation links and POST/PUT/DELETE actions).
 
-Priority order (do as many as time allows, most important first):
-1. Register a new account (valid name, email like test+timestamp@example.com,
-   strong password) and log in. This unlocks many hidden pages/menus.
-2. Open the account menu and visit each item inside it once.
-3. Pick ONE form on the page (search, contact, or profile) and actually
-   submit it with realistic data — don't just preview it.
-4. If it's e-commerce: add one item to the cart and start checkout.
-5. Scroll and open any remaining menus/submenus you haven't visited yet.
+Priority execution order:
+1. AUTHENTICATION (MANDATORY FIRST STEP):
+   Navigate directly to the login page (e.g., /user or login button). Log in using
+   the provided administrative credentials:
+   - Username: admin
+   - Password: admin123
+   Submit the login form and ensure you are fully authenticated.
 
-For every step, record the resulting URL/route (including anything after
-'#') and a short label of the action performed. Return ALL URLs observed
-during the whole session, plus the list of actions taken.
+2. USER & ADMIN MENU DISCOVERY:
+   Once logged in, click on the user profile/avatar/menu dropdown (usually in the
+   top-right corner or sidebar) to expand dynamic items. Open and visit each link
+   inside it once (e.g., My Channel, My Account, Upload Video, Configurations/Site Settings,
+   Plugins, User Groups, Subscriptions, History).
 
-Only act on this authorized test/staging site. Use realistic data, not
-attack payloads (no SQL injection, XSS, etc.).
+3. STATE-CHANGING ACTIONS & FORMS:
+   Perform realistic interactions to trigger hidden POST/AJAX endpoints:
+   - Open the Video Upload modal or page, inspect the form, and attempt to submit
+     minimal valid text/metadata (title, category) without breaking.
+   - Use the Search form: submit a test query (e.g., 'test video').
+   - Open a channel, video manager, or category page and visit sub-tabs.
+   - Open the Contact, About, or Help pages.
+
+4. REMAINING NAVIGATION:
+   Click through remaining header, footer, and sidebar links, pagination controls,
+   and filter buttons (e.g., /trending, /audioOnly, /videoOnly).
+
+OUTPUT REQUIREMENTS:
+For every step, capture and record the visited URL/route (including paths,
+query parameters, and dynamic route segments). Return ALL unique URLs observed
+throughout the entire session alongside a summary of the actions taken.
+
+Only act on this authorized test target. Use safe, realistic test data without attack payloads.
 """
 
-# Minimal prompt used only to sanity-check that the agent endpoint itself
-# works at all, isolated from the complexity of the deep-interaction task.
-SANITY_CHECK_PROMPT = "List the first 5 links you see on this page. Do not click anything else."
+# Minimal prompt used only to sanity-check that the agent endpoint itself works.
+SANITY_CHECK_PROMPT = """
+Navigate to the target site and list the first 5 links or routes you observe on the page. Do not click anything else.
+"""
 
 
 def _make_retrying_session() -> requests.Session:
@@ -105,8 +119,6 @@ def poll_agent_job(session: requests.Session, job_id: str,
             r = session.get(f"{FIRECRAWL_AGENT_URL}/{job_id}", headers=_headers(), timeout=30)
             status_json = r.json()
         except requests.exceptions.RequestException as e:
-            # Session đã có Retry adapter tự xử lý phần lớn lỗi tạm thời;
-            # nếu vẫn lọt tới đây, log lại và thử tiếp ở vòng sau thay vì crash.
             print(f"⚠️ [{elapsed:>4}s] Lỗi mạng khi poll ({e!s}), thử lại ở vòng kế tiếp...")
             time.sleep(poll_interval)
             elapsed += poll_interval
@@ -127,14 +139,6 @@ def poll_agent_job(session: requests.Session, job_id: str,
 
 
 def sanity_check_agent(session: requests.Session, target_url: str, max_wait_seconds: int = 120) -> bool:
-    """
-    Chạy thử agent với 1 tác vụ CỰC ĐƠN GIẢN (không đăng nhập, không submit
-    form) để tách bạch 2 khả năng:
-      - Nếu tác vụ đơn giản này HOÀN TẤT bình thường -> API/tài khoản ổn,
-        vấn đề nằm ở ĐỘ PHỨC TẠP của prompt deep-interaction.
-      - Nếu ngay cả tác vụ này cũng "processing" mãi -> vấn đề nằm ở
-        API/tài khoản/model, không phải do prompt -> nên báo Firecrawl support.
-    """
     print("\n🧪 [SANITY CHECK] Chạy thử agent với tác vụ tối giản trước...")
     job_id = start_agent_job(session, target_url, SANITY_CHECK_PROMPT, DiscoveredLinks.model_json_schema())
     if not job_id:
@@ -143,13 +147,18 @@ def sanity_check_agent(session: requests.Session, target_url: str, max_wait_seco
 
     result = poll_agent_job(session, job_id, max_wait_seconds=max_wait_seconds, poll_interval=10)
     if result and result.get("status") == "completed":
-        print("✅ Sanity check PASS -> API/tài khoản hoạt động bình thường, "
-              "vấn đề nằm ở độ phức tạp của prompt deep-interaction -> cần đơn giản hoá prompt thêm.")
+        data = result.get("data") or {}
+        links = data.get("links", []) or []
+        print(f"✅ Sanity check PASS — {len(links)} link tìm được: {links}")
+        # Kiểm tra thêm: nếu link toàn thuộc domain ngrok chính nó (interstitial),
+        # cảnh báo ngay để không mất thời gian chạy prompt phức tạp vô ích.
+        if links and all("ngrok" in l.lower() or l.startswith("#") for l in links):
+            print("⚠️ Các link tìm được có vẻ vẫn thuộc trang chặn ngrok, không phải app thật. "
+                  "Kiểm tra lại bước 'Visit Site' trong prompt hoặc đổi sang Cloudflare Tunnel.")
         return True
 
     print("🚨 Sanity check KHÔNG hoàn tất -> nghi ngờ cao vấn đề nằm ở API/tài khoản "
-          "(model 'spark-1-pro' hoặc tính năng agent), không phải do prompt của bạn. "
-          f"Nên báo Firecrawl support kèm job id: {job_id}")
+          f"(model 'spark-1-pro' hoặc tính năng agent), báo Firecrawl support kèm job id: {job_id}")
     return False
 
 
@@ -173,7 +182,7 @@ def extract_ngrok_endpoints() -> list[str]:
             method = request_data.get("method", "")
             uri = request_data.get("uri", "")
             if method and uri and not uri.endswith(
-                (".png", ".jpg", ".jpeg", ".svg", ".css", ".js", ".woff2")
+                (".png", ".jpg", ".jpeg", ".svg", ".css", ".js", ".woff2", ".ico", ".mp4", ".webm")
             ):
                 unique_endpoints.add(f"{method.upper()} - {uri.split('?')[0]}")
 
@@ -186,15 +195,15 @@ def extract_ngrok_endpoints() -> list[str]:
 
 # --- MAIN PIPELINE ---
 if __name__ == "__main__":
-    TARGET_URL = "https://quest-indicates-since-baking.trycloudflare.com"
+    TARGET_URL = "https://possibilities-spider-flying-tenant.trycloudflare.com/"
     session = _make_retrying_session()
 
-    # Bước 0: xác nhận API/tài khoản hoạt động bình thường trước khi chạy
-    # tác vụ nặng — bỏ comment dòng dưới nếu muốn kiểm tra lại; nếu bạn đã
-    # từng thấy sanity check PASS, có thể bỏ qua để tiết kiệm thời gian.
-    # if not sanity_check_agent(session, TARGET_URL):
-    #     print("⛔ Dừng lại: cần xử lý vấn đề API/tài khoản trước khi thử prompt phức tạp hơn.")
-    #     exit()
+    # Bước 0: chạy sanity check trước tiên — QUAN TRỌNG với target mới, vì
+    # cần xác nhận agent thực sự vượt qua được trang chặn ngrok trước khi
+    # chạy prompt phức tạp (tốn nhiều thời gian hơn nếu thất bại lặp lại).
+    if not sanity_check_agent(session, TARGET_URL):
+        print("⛔ Dừng lại: cần xử lý vấn đề API/tài khoản/ngrok trước khi thử prompt phức tạp hơn.")
+        exit()
 
     print("\n[PHASE 1] 🤖 Launching AI Agent (manual poll, real-time progress)...")
     job_id = start_agent_job(session, TARGET_URL, GENERIC_DEEP_INTERACTION_PROMPT,
@@ -214,15 +223,15 @@ if __name__ == "__main__":
     else:
         print("❌ Không tạo được agent job (không có job id trong response).")
 
-    # Thu thập lại toàn bộ traffic từ Ngrok
-    backend_endpoints = extract_ngrok_endpoints()
+    # backend_endpoints = extract_ngrok_endpoints()
+    backend_endpoints = []  
 
     if ui_links:
-        with open("Avideo_agent_ui(V4).txt", "w", encoding="utf-8") as f:
+        with open("avideo_agent_ui(V5).txt", "w", encoding="utf-8") as f:
             f.writelines(f"{url}\n" for url in ui_links)
-        print(f"📂 Saved {len(ui_links)} UI links to: Avideo_agent_ui(V4).txt")
+        print(f"📂 Saved {len(ui_links)} UI links to: avideo_agent_ui(V5).txt")
 
     if backend_endpoints:
-        with open("Avideo_ngrok_backend_endpoints(V4).txt", "w", encoding="utf-8") as f:
+        with open("avideo_ngrok_backend_endpoints(V5).txt", "w", encoding="utf-8") as f:
             f.writelines(f"{ep}\n" for ep in backend_endpoints)
-        print(f"📂 Saved {len(backend_endpoints)} server endpoints to: Avideo_ngrok_backend_endpoints(V4).txt")
+        print(f"📂 Saved {len(backend_endpoints)} server endpoints to: avideo_ngrok_backend_endpoints(V5).txt")
